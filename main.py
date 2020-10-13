@@ -7,6 +7,17 @@ import shutil
 import subprocess
 
 
+def onMouse(e, x, y, flag, params):
+    global ratio
+    if e == cv2.EVENT_MOUSEWHEEL:
+        if flag > 0:
+            ratio += 0.1
+        else:
+            ratio -= 0.1
+        if ratio <= 0:
+            ratio = 0.1
+
+
 def cv2pil(image):
     new_image = image.copy()
     if new_image.ndim == 2:  # モノクロ
@@ -30,7 +41,7 @@ def main():
     if os.path.isdir("img"):
         shutil.rmtree("img")
     os.mkdir("img")
-
+    searched = []
     while cap.isOpened():
         r, frame = cap.read()
         if not r:
@@ -47,9 +58,10 @@ def main():
                                    builder=pyocr.builders.LineBoxBuilder())
         for d in res:
             keyword = d.content.replace(" ", "_")
-            if os.path.isfile(f"img/{keyword}.png"):  # すでに画像があったら貼り付け
+            if keyword and keyword in searched:  # すでに画像があったら貼り付け
                 try:
                     tmp = cv2.imread(f"img/{keyword}.png")
+                    tmp = cv2.resize(tmp, None, None, ratio, ratio)
                     frame[d.position[0][1]:d.position[0][1]+tmp.shape[0],
                           d.position[1][0]:d.position[1][0]+tmp.shape[1]] = tmp
                 except Exception as e:
@@ -57,9 +69,11 @@ def main():
             else:  # なかったら検索してくる
                 subprocess.Popen(f"python scraper.py {d.content}",
                                  cwd="D:/Users/tocky/Documents/exp_3A/OpenCV_GL/last", shell=True)
-            # cv2.rectangle(frame, d.position[0], d.position[1], (0, 0, 255), 2)
+                searched.append(keyword)
+                # cv2.rectangle(frame, d.position[0], d.position[1], (0, 0, 255), 2)
 
-        cv2.imshow("", frame)
+        cv2.imshow("result", frame)
+        cv2.setMouseCallback("result", onMouse)
         k = cv2.waitKey(1) & 0xFF
         if k == ord('q'):
             break
@@ -73,4 +87,5 @@ def main():
 
 
 if __name__ == "__main__":
+    ratio = 1
     main()
