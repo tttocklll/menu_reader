@@ -72,7 +72,7 @@ def main():
             if keyword and keyword in searched:  # すでに画像があったら貼り付け
                 try:
                     tmp = imread(f"img/{keyword}.png")
-                    # tmp = cv2.resize(tmp, None, None, ratio, ratio)
+                    tmp = cv2.resize(tmp, None, None, ratio, ratio)
                     frame[d.position[0][1]:d.position[0][1]+tmp.shape[0],
                           d.position[1][0]:d.position[1][0]+tmp.shape[1]] = tmp
                 except Exception as e:
