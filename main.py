@@ -5,6 +5,7 @@ import os
 from PIL import Image
 import shutil
 import subprocess
+import numpy as np
 
 
 def onMouse(e, x, y, flag, params):
@@ -28,6 +29,16 @@ def cv2pil(image):
         new_image = cv2.cvtColor(new_image, cv2.COLOR_BGRA2RGBA)
     new_image = Image.fromarray(new_image)
     return new_image
+
+
+def imread(filename, flags=cv2.IMREAD_COLOR, dtype=np.uint8):
+    try:
+        n = np.fromfile(filename, dtype)
+        img = cv2.imdecode(n, flags)
+        return img
+    except Exception as e:
+        print(e)
+        return None
 
 
 def main():
@@ -57,21 +68,22 @@ def main():
                                    lang=lang,
                                    builder=pyocr.builders.LineBoxBuilder())
         for d in res:
-            keyword = d.content.replace(" ", "_")
+            keyword = d.content.replace(" ", "_") if lang == "eng" else d.content.replace(" ", "")
             if keyword and keyword in searched:  # すでに画像があったら貼り付け
                 try:
-                    tmp = cv2.imread(f"img/{keyword}.png")
-                    tmp = cv2.resize(tmp, None, None, ratio, ratio)
+                    tmp = imread(f"img/{keyword}.png")
+                    # tmp = cv2.resize(tmp, None, None, ratio, ratio)
                     frame[d.position[0][1]:d.position[0][1]+tmp.shape[0],
                           d.position[1][0]:d.position[1][0]+tmp.shape[1]] = tmp
                 except Exception as e:
                     print(keyword, e)
             else:  # なかったら検索してくる
-                subprocess.Popen(f"python scraper.py {d.content}",
+                subprocess.Popen(f"python scraper.py {d.content if lang == 'eng' else keyword}",
                                  cwd="D:/Users/tocky/Documents/exp_3A/OpenCV_GL/last", shell=True)
                 searched.append(keyword)
-                # cv2.rectangle(frame, d.position[0], d.position[1], (0, 0, 255), 2)
+            # cv2.rectangle(frame, d.position[0], d.position[1], (0, 0, 255), 2)
 
+        cv2.putText(frame, lang, (0, 50), cv2.FONT_HERSHEY_COMPLEX, 1.5, (255, 0, 0), 1, cv2.LINE_AA)
         cv2.imshow("result", frame)
         cv2.setMouseCallback("result", onMouse)
         k = cv2.waitKey(1) & 0xFF
