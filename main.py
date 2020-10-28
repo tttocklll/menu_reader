@@ -17,6 +17,8 @@ def onMouse(e, x, y, flag, params):
             ratio -= 0.1
         if ratio <= 0:
             ratio = 0.1
+        ratio = float('{:.1f}'.format(ratio))
+
 
 
 def cv2pil(image):
@@ -57,18 +59,23 @@ def main():
         r, frame = cap.read()
         if not r:
             break
+        cv2.imshow("src", frame)
         # OpenCVでの加工
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        cv2.imshow("gray", gray)
         _, thresh = cv2.threshold(
-            gray, 0, 255, cv2.THRESH_TOZERO + cv2.THRESH_OTSU)
-
+            gray, 0, 255, cv2.THRESH_OTSU)
+        cv2.imshow("thresh", thresh)
         # OCR
         img_pil = cv2pil(thresh)
         res = tool.image_to_string(img_pil,
                                    lang=lang,
                                    builder=pyocr.builders.LineBoxBuilder())
+        im = thresh.copy()
+        im = cv2.cvtColor(im, cv2.COLOR_GRAY2BGR)
         for d in res:
             keyword = d.content.replace(" ", "_") if lang == "eng" else d.content.replace(" ", "")
+            cv2.rectangle(im, d.position[0], d.position[1], (0, 0, 255), 2)
             if keyword and keyword in searched:  # すでに画像があったら貼り付け
                 try:
                     tmp = imread(f"img/{keyword}.png")
@@ -81,9 +88,9 @@ def main():
                 subprocess.Popen(f"python scraper.py {d.content if lang == 'eng' else keyword}",
                                  cwd="D:/Users/tocky/Documents/exp_3A/OpenCV_GL/last", shell=True)
                 searched.append(keyword)
-            # cv2.rectangle(frame, d.position[0], d.position[1], (0, 0, 255), 2)
+        cv2.imshow("words", im)
 
-        cv2.putText(frame, lang, (0, 50), cv2.FONT_HERSHEY_COMPLEX, 1.5, (255, 0, 0), 1, cv2.LINE_AA)
+        cv2.putText(frame, f"lang = {lang}, ratio = {ratio}", (0, 50), cv2.FONT_HERSHEY_COMPLEX, 1, (0, 0, 255), 1, cv2.LINE_AA)
         cv2.imshow("result", frame)
         cv2.setMouseCallback("result", onMouse)
         k = cv2.waitKey(1) & 0xFF
